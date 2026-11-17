@@ -1,85 +1,139 @@
-import { getSavedDeck, saveSavedDeck, addToSavedDeck, getSavedCardsList, saveSavedCardsList, addToSavedCardsList} from "./storage.js";
-import { cardsRender, renderDeck, updateTeamCount, showCardDetails, loadMore, showLoading, hideLoading, showEmptyState, addToFavorite} from "./ui.js";
-import { requist } from "./services/api.js";
-renderDeck(); 
-updateTeamCount();
-// Cards List
-const cards = document.querySelector("#Ccards");
-if(getSavedCardsList().length == 0)loadMore();
-cardsRender();
+import { 
+  getCreatures, 
+  getCreaturesByType, 
+  searchCreatures, 
+  searchCreaturesByTypeAndQuery, 
+  createCreature, 
+  getTeam, 
+  addToTeam, 
+  removeFromTeam 
+} from "./services/api.js";
+import { cardsRender, renderDeck, updateTeamCount, showCardDetails, showLoading, hideLoading, showEmptyState} from "./ui.js";
 
-//filter
-let filter = document.querySelector("#filter")
-let enabledFilter = false
-let filterValue = []
-filter.addEventListener("change", (event) => {
-  let SavedCardsList = getSavedCardsList()
-  if(event.target.value == "Tous") {
-    cardsRender()
-    enabledFilter = false
-  } else {
-    filterValue = SavedCardsList.filter((c) => c.type == event.target.value)
-    cardsRender(filterValue)
-    enabledFilter = true
+let allCards = [];
+let currentTeam = [];
+
+async function startup() {
+  showLoading();
+  try {
+    allCards = await getCreatures();
+    currentTeam = await getTeam();
+    
+    renderDeck(currentTeam); 
+    updateTeamCount();
+
+    let savedFilter = localStorage.getItem("selectedFilter") || "Tous";
+    let filterEl = document.querySelector("#filter");
+    
+    if (filterEl) {
+      filterEl.value = savedFilter;
+      if (savedFilter === "Tous") {
+        cardsRender(allCards);
+      } else {
+        let filtered = await getCreaturesByType(savedFilter);
+        cardsRender(filtered);
+      }
+    } else {
+      cardsRender(allCards);
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    showEmptyState();
+  } finally {
+    hideLoading();
   }
-})
+}
 
-//search
-let search = document.querySelector("#search")
+startup();
+
+const cards = document.querySelector("#Ccards");
+
+let filter = document.querySelector("#filter");
+let enabledFilter = false;
+let filterValue = [];
+
+filter.addEventListener("change", async (event) => {
+  let selectedType = event.target.value;
+  localStorage.setItem("selectedFilter", selectedType);
+  
+  showLoading();
+  try {
+    if(selectedType == "Tous") {
+      cardsRender(allCards);
+      enabledFilter = false;
+    } else {
+      filterValue = await getCreaturesByType(selectedType);
+      cardsRender(filterValue);
+      enabledFilter = true;
+    }
+  } catch (error) {
+    showEmptyState();
+  } finally {
+    hideLoading();
+  }
+});
+
+let search = document.querySelector("#search");
 let filterSelect = document.querySelector("#filter");
 let sortSelect = document.querySelector("#sort");
+
 search.addEventListener("keydown", async (event) => {
-  if(event.key != "Enter")return
-  showLoading()
+  if(event.key != "Enter") return;
+  showLoading();
   let query = event.target.value.toLowerCase().trim();
+  
   if(!query){
-    hideLoading()
-    cardsRender()
-    return
+    hideLoading();
+    cardsRender(allCards);
+    return;
   }
   
+  let currentType = filterSelect ? filterSelect.value : "Tous";
+
+  try {
+    let match = [];
+    if (currentType && currentType !== "Tous") {
+      match = await searchCreaturesByTypeAndQuery(currentType, query);
+    } else {
+      match = await searchCreatures(query);
+    }
+
+    hideLoading();
+    if(match.length == 0) showEmptyState();
+    cardsRender(match);
+  } catch (error) {
+    hideLoading();
+    showEmptyState();
+  }
   
-  let url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(query.trim())}`
-  let match = await requist(url)
-  hideLoading()
-  if(match.length == 0)showEmptyState()
-  cardsRender(match.slice(0, 30));
-  
-  if (filterSelect) filterSelect.value = "Tous"; 
+  if (filterSelect && currentType === "Tous") filterSelect.value = "Tous"; 
   if (sortSelect) sortSelect.value = "id";
 });
 
-
-//sort
-let sort = document.querySelector("#sort")
+let sort = document.querySelector("#sort");
 sort.addEventListener('change', (event) => {
-  let SavedCardsList = getSavedCardsList()
-   let value = event.target.value
-   let sorted = []
+   let value = event.target.value;
+   let sorted = [];
    if(enabledFilter == true) {
-    sorted = [...filterValue]
+    sorted = [...filterValue];
    } else {
-    sorted = [...SavedCardsList]
+    sorted = [...allCards];
    }
-   if (value === "favorite") {
-  sorted.sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
-}
-   else if (value != "id") {
-    sorted.sort((a, b) => {
-    let rawA = (value == "attack" || value == "defence")? Number(a.stats[value]) : Number(a[value])
-    let rawB = (value == "attack" || value == "defence")? Number(b.stats[value]) : Number(b[value])
-    let valA = (rawA) || 0
-    let valB = (rawB) || 0
-    return valB - valA
-    })
+   
+
+   if (value != "id") {
+     sorted.sort((a, b) => {
+       let rawA = (value == "attack" || value == "defence") ? Number(a.stats[value]) : Number(a[value]);
+       let rawB = (value == "attack" || value == "defence") ? Number(b.stats[value]) : Number(b[value]);
+       let valA = rawA || 0;
+       let valB = rawB || 0;
+       return valB - valA;
+     });
    }
+   cardsRender(sorted);
+});
 
-  cardsRender(sorted)
-})
-
-// show card detail
 cards.addEventListener('click', (event) => {
-    let SavedCardsList = getSavedCardsList()
     if (event.target.closest('button') && event.target.closest('button').classList.contains('card-btn') || event.target.closest(".fav-icon")) {
       return; 
     }
@@ -87,25 +141,24 @@ cards.addEventListener('click', (event) => {
     const article = event.target.closest('article');
     if (!article) return;
 
-    const cardId = article.querySelector('span').textContent
-    const selectedCard = SavedCardsList.find(c => c.id === cardId);
+    const cardId = article.querySelector('span').textContent.trim();
+    const selectedCard = allCards.find(c => String(c.id) === cardId);
 
     if (selectedCard) {
       showCardDetails(selectedCard);
     }
 });
 
-// Add new cards to the list (Validation & Storage update)
 const form = document.querySelector(`#creature-form`);
 
 const regexPatterns = {
-    id: /^#\d+$/,                  
+    id: /^#\d+$/,                     
     name: /^[a-zA-Z\s]{2,30}$/, 
     type: /^(Effect|LIGHT|Fusion|DARK|EARTH|WATER)$/,  
     level: /^([0-9]|1[0-2])$/,  
-    attack: /^([0-9]|[1-9][0-9]{1,2}|[1-4][0-9]{3}|5000)$/,              
+    attack: /^([0-9]|[1-9][0-9]{1,2}|[1-4][0-9]{3}|5000)$/,               
     defence: /^([0-9]|[1-9][0-9]{1,2}|[1-4][0-9]{3}|5000)$/,
-    image:/^https?:\/\/.+\.(png|jpg|jpeg|webp|gif)$/i,         
+    image: /^https?:\/\/.+\.(png|jpg|jpeg|webp|gif)$/i,         
     description: /^[\s\S]{10,200}$/  
 };
 
@@ -115,16 +168,16 @@ const errorMessages = {
     level: "Please enter a valid level.",
     attack: "The attack must be a number between 0 and 5000.",
     defence: "The defence must be a number between 0 and 5000.",
-    image: "Please enter a valid image link (starting with https:// and ending with a valid image format).",
+    image: "Please enter a valid image link.",
     description: "The description must contain between 10 and 200 characters."
 };
 
 form.addEventListener(`focusout`, (event) => {
-  const input = event.target
-  const fieldName = input.name
+  const input = event.target;
+  const fieldName = input.name;
   if (!regexPatterns[fieldName]) return;
   validateField(input, fieldName);
-})
+});
 
 function validateField(input, fieldName) {
   const pattern = regexPatterns[fieldName];
@@ -137,26 +190,26 @@ function validateField(input, fieldName) {
   }
   else if (pattern.test(input.value.trim())) {
     input.classList.remove(`border-red-500`);
-    input.classList.add(`border-green-500`)
+    input.classList.add(`border-green-500`);
     if(errorSpan && errorSpan.classList.contains(`error-message`)) {
       errorSpan.textContent = "";
     }
-    return true
+    return true;
   } else {
     input.classList.remove(`border-green-500`);
     input.classList.add(`border-red-500`);
     if(errorSpan && errorSpan.classList.contains(`error-message`)) {
        errorSpan.textContent = errorMessages[fieldName];
-       errorSpan.style.color = "red"
+       errorSpan.style.color = "red";
     }
-    return false
+    return false;
   }
 }
 
-form.addEventListener(`submit`, (event) => {
+form.addEventListener(`submit`, async (event) => {
   event.preventDefault();
 
-  let isFormValid = true
+  let isFormValid = true;
   Object.keys(regexPatterns).forEach(fieldName => {
     const input = form.elements[fieldName];
     if(input) {
@@ -165,10 +218,7 @@ form.addEventListener(`submit`, (event) => {
     }
   });
 
-  if (!isFormValid) {
-    console.log("Rectify the errors before submitting.");
-    return;
-  }
+  if (!isFormValid) return;
 
   const formData = new FormData(form);
   const newCard = {
@@ -176,105 +226,81 @@ form.addEventListener(`submit`, (event) => {
     name: formData.get("name"),
     type: formData.get("type"),
     level: formData.get("level"),
-    stats: { attack: formData.get("attack"), defence: formData.get("defence") },
+    stats: { attack: Number(formData.get("attack")), defence: Number(formData.get("defence")) },
     image: formData.get("image"),
     description: formData.get("description")
   };
 
-  addToSavedCardsList(newCard);
+  try {
+    await createCreature(newCard);
+    
+    allCards = await getCreatures();
+    cardsRender(allCards);
 
-  let SavedCardsList = getSavedCardsList();
-  cardsRender(SavedCardsList);
-
-  form.reset();
-  form.querySelectorAll('input, textarea, select').forEach(input => {
-    input.classList.remove('border-green-500', 'border-red-500');
-  });
-  
-  let Ccounts = document.querySelector("#cards-count");
-  if(Ccounts) Ccounts.textContent = SavedCardsList.length;
-
-  console.log("New card added successfully!", newCard);
+    form.reset();
+    form.querySelectorAll('input, textarea, select').forEach(input => {
+      input.classList.remove('border-green-500', 'border-red-500');
+    });
+    
+    let Ccounts = document.querySelector("#cards-count");
+    if(Ccounts) Ccounts.textContent = allCards.length;
+  } catch (error) {
+    console.error("Failed to add card:", error);
+  }
 });
 
-
-// Add to my cards
-cards.addEventListener('click', (event) => {
+cards.addEventListener('click', async (event) => {
+  console.log("listener works")
     if (event.target.closest('button') && event.target.closest('button').classList.contains('card-btn')) {
-      const button = event.target.closest("button")
+      const button = event.target.closest("button");
       const article = button.closest('article');
       if (!article) return;
 
-      let SavedCardsList = getSavedCardsList();
-      const cardId = article.querySelector('span').textContent;
-      const selectedCard = SavedCardsList.find(c => c.id == cardId);
+      const cardId = article.querySelector('span').getAttribute(`card-id`)
+      const selectedCard = allCards.find(c => String(c.id) == String(cardId));
+      let currentTeam = await getTeam()
+      if(currentTeam.includes(c => String(c.id) == String(cardId)))return
 
       if (selectedCard) {
-        addToMyCards(selectedCard);
+        await addToMyCards(selectedCard);
       }
     } 
 });
 
-function addToMyCards(cardData) {
-    const mycardsSection = document.getElementById('mycards');
-    if (!mycardsSection || mycardsSection.children.length >= 6) return;
-    
-    const existingCards = mycardsSection.querySelectorAll("#card-item");
-    const isAlreadyAdded = Array.from(existingCards).some((d) => d.querySelector("span").textContent.includes(cardData.id));
-    if (isAlreadyAdded) return;
-    addToSavedDeck(cardData);
+async function addToMyCards(cardData) {
+    let currentTeam = await getTeam();
+    if (!currentTeam) currentTeam = [];
 
-    renderDeck(); 
+    if (currentTeam.length >= 6) return;
+    
+    const isAlreadyAdded = currentTeam.some((d) => String(d.id) === String(cardData.id));
+    if (isAlreadyAdded) return;
+    
+    await addToTeam(cardData);
+    
+    currentTeam = await getTeam();
+    renderDeck(currentTeam); 
     updateTeamCount();
 }
 
 const mycardsSection = document.getElementById('mycards');
 if (mycardsSection) {
-  mycardsSection.addEventListener('click', (event) => {
+  mycardsSection.addEventListener('click', async (event) => {
     const removeBtn = event.target.closest('button[aria-label="Remove card"]');
     if (!removeBtn) return;
 
     const cardItem = removeBtn.closest('#card-item');
     if (cardItem) {
       const cardId = cardItem.getAttribute('data-id');
-      let SavedDeck = getSavedDeck();
       
-      SavedDeck = SavedDeck.filter((c) => c.id != cardId);
-      saveSavedDeck(SavedDeck);
-
-      renderDeck(SavedDeck);
+      await removeFromTeam(cardId);
+      
+      let updatedTeam = await getTeam();
+      renderDeck(updatedTeam);
       updateTeamCount();
     }
   });
 }
 
-// Load More 
-let callBtn = document.querySelector("#rollbtn");
-if(callBtn) {
-  callBtn.addEventListener("click", () => {
-    loadMore();
 
-  });
-}
-
-// reset your data
-
-  let resetBtn = document.querySelector("#resetbtn"); 
-  if(resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      console.log("reset works")
-      localStorage.clear();
-      location.reload();
-    });
-  }
-
-
-  // favorite icon
-  document.addEventListener("click", (e)=> {
-    if(!e.target.closest(".fav-icon"))return
-    let favCard = e.target.closest(".card")
-    let favIcon = e.target.closest(".fav-icon") 
-    let favCardId = favCard.querySelector(".card-id").getAttribute("card-id")
-    addToFavorite(favCardId, favIcon)
-  })
 
