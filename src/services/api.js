@@ -1,42 +1,68 @@
-import { addToSavedCardsList, getSavedCardsList, saveSavedCardsList } from "../storage.js";
-import { hideLoading, showErrorState } from "../ui.js";
-// Roll A Card 
+ const BASE_URL = 'http://localhost:5000';
 
+export async function request(method = 'GET', route = '', body = null) {
+  try {
+    const options = {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
 
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
 
- export async function requist(source) {
- const CACHE_NAME = 'yugi-cards-cache-v1';
+    const response = await fetch(`${BASE_URL}${route}`, options);
 
-    try {
-  
-    const cache = await caches.open(CACHE_NAME);
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: Fetch failed`);
+    }
+
+    if (method === 'DELETE') {
+      return true;
+    }
+
+    return await response.json();
     
-    let cachedResponse = await cache.match(source);
-    if (cachedResponse) {
-      console.log("Loaded cards from Cache API");
-      let data = await cachedResponse.json();
-      return data.data || data; 
-    }
-        console.log("Fetching cards from API...");
-         let response = await fetch(source)
-
-         if (!response.ok) {
-            throw new Error(`Error ${response.status}: Not able to fetch data.`);
-        }
-        cache.put(source, response.clone());
-
-         let data = await response.json()
-        
-         let allCards = data.data 
-         return allCards
-        
-        } catch (error) {
-        console.error("The load failed ", error.message);
-        hideLoading()
-        showErrorState(error.message)
-        return []
-    }
-
-    }
+  } catch (error) {
+    console.error("API Request Error:", error);
+    throw error; 
+  }
+}
  
+    export function getCreatures() {
+      return request(`GET`, `/creatures`)
+    }
 
+    export function getCreaturesByType(type) {
+      return request(`GET`, `/creatures?type=${encodeURIComponent(type)}`)
+    }
+
+    export function searchCreatures(query) {
+      query = query.trim()
+      return request(`GET`, `/creatures?name=${encodeURIComponent(query)}`)
+    }
+
+    export function searchCreaturesByTypeAndQuery(type, query) {
+      return request(`GET`, `/creatures?type=${encodeURIComponent(type)}&name=${encodeURIComponent(query)}`)
+    }
+
+    export function createCreature(card) {
+     request(`POST`, '/creatures', card)
+     return
+    }
+
+    export function getTeam() {
+      return request(`GET`, `/equip`)
+    }
+
+    export function addToTeam(card) {
+      request(`POST`, `/equip`, card)
+      return
+    }
+    
+    export function removeFromTeam(index) {
+      request(`DELETE`, `/equip/${index}`)
+      return
+    }
