@@ -55,7 +55,7 @@ export async function request(method = 'GET', route = '', body = null) {
         else return request(`GET`, `/creatures?_sort=${encodeURIComponent(sType)}`)
     }
 
-    export function createCreature(card) {
+    export async function createCreature(card) {
      request(`POST`, '/creatures', card)
      return
     }
@@ -72,4 +72,8 @@ export async function request(method = 'GET', route = '', body = null) {
     export function removeFromTeam(index) {
       request(`DELETE`, `/equip/${index}`)
       return
+    }
+
+    export function removeFromCards(index) {
+      request(`DELETE`, `/creatures/${index}`)
     }

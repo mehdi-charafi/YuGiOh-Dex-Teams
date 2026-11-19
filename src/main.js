@@ -7,7 +7,8 @@ import {
   getTeam, 
   addToTeam, 
   removeFromTeam, 
-  getSortedCreatures
+  getSortedCreatures,
+  removeFromCards
 } from "./services/api.js";
 import { cardsRender, renderDeck, updateTeamCount, showCardDetails, showLoading, hideLoading, showEmptyState} from "./ui.js";
 
@@ -22,9 +23,23 @@ async function startup() {
     
     renderDeck(currentTeam); 
     updateTeamCount();
-
-    let savedFilter = localStorage.getItem("selectedFilter") || "Tous";
+   
+    let savedFilter = sessionStorage.getItem("selectedFilter") || "Tous";
+    sessionStorage.setItem("selectedForm", {})
+    let savedForm = sessionStorage.getItem("selectedForm")
     let filterEl = document.querySelector("#filter");
+
+    if(savedForm) {
+      let form = document.querySelector("#creature-form")
+      
+      for (let i of form.elements) {
+        if(i.name && savedForm[i.name] !== undefined) {
+          i.value = savedForm[i.name];
+        } 
+      }
+         
+      
+    }
     
     if (filterEl) {
       filterEl.value = savedFilter;
@@ -55,7 +70,7 @@ let filterValue = [];
 
 filter.addEventListener("change", async (event) => {
   let selectedType = event.target.value;
-  localStorage.setItem("selectedFilter", selectedType);
+  sessionStorage.setItem("selectedFilter", selectedType);
   
   showLoading();
   try {
@@ -126,15 +141,16 @@ sort.addEventListener('change', async (event) => {
    cardsRender(sorted);
 });
 
-cards.addEventListener('click', (event) => {
+cards.addEventListener('click', async (event) => {
     if (event.target.closest('button') && event.target.closest('button').classList.contains('card-btn') || event.target.closest(".fav-icon")) {
       return; 
     }
+    allCards = await getCreatures();
 
     const article = event.target.closest('article');
     if (!article) return;
 
-    const cardId = article.querySelector('span').textContent.trim();
+    const cardId = article.querySelector('span').getAttribute(`card-id`)
     const selectedCard = allCards.find(c => String(c.id) === cardId);
 
     if (selectedCard) {
@@ -166,10 +182,12 @@ const errorMessages = {
 };
 
 form.addEventListener(`focusout`, (event) => {
+  let savedForm = sessionStorage.getItem(`selectedForm`)
   const input = event.target;
   const fieldName = input.name;
   if (!regexPatterns[fieldName]) return;
   validateField(input, fieldName);
+  savedForm[fieldName] = input
 });
 
 function validateField(input, fieldName) {
@@ -215,7 +233,7 @@ form.addEventListener(`submit`, async (event) => {
 
   const formData = new FormData(form);
   const newCard = {
-    id: formData.get("id"),
+    id: formData.length++,
     name: formData.get("name"),
     type: formData.get("type"),
     level: formData.get("level"),
@@ -295,5 +313,11 @@ if (mycardsSection) {
   });
 }
 
-
+// delete cards from server
+let delBtn = document.querySelectorAll(".destroycard")
+delBtn.forEach(c => {c.addEventListener("click", (e)=> {
+  let card = e.target.closest(".card")
+  let cardId = card.querySelector("span").getAttribute("card-id")
+  removeFromCards(cardId)
+})})
 
