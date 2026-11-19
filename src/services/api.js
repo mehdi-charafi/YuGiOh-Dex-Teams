@@ -48,6 +48,13 @@ export async function request(method = 'GET', route = '', body = null) {
       return request(`GET`, `/creatures?type=${encodeURIComponent(type)}&name=${encodeURIComponent(query)}`)
     }
 
+    export function getSortedCreatures(sType, type) {
+      if(type && sType == "id") return request(`GET`, `/creatures?type=${encodeURIComponent(type)}`)
+        else if(type) return request(`GET`, `/creatures?type=${encodeURIComponent(type)}&_sort=${encodeURIComponent(sType)}`)
+      else if(sType == "id") return request(`GET`, `/creatures?`)
+        else return request(`GET`, `/creatures?_sort=${encodeURIComponent(sType)}`)
+    }
+
     export function createCreature(card) {
      request(`POST`, '/creatures', card)
      return

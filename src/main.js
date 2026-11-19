@@ -6,7 +6,8 @@ import {
   createCreature, 
   getTeam, 
   addToTeam, 
-  removeFromTeam 
+  removeFromTeam, 
+  getSortedCreatures
 } from "./services/api.js";
 import { cardsRender, renderDeck, updateTeamCount, showCardDetails, showLoading, hideLoading, showEmptyState} from "./ui.js";
 
@@ -111,25 +112,17 @@ search.addEventListener("keydown", async (event) => {
 });
 
 let sort = document.querySelector("#sort");
-sort.addEventListener('change', (event) => {
+sort.addEventListener('change', async (event) => {
    let value = event.target.value;
-   let sorted = [];
-   if(enabledFilter == true) {
-    sorted = [...filterValue];
-   } else {
-    sorted = [...allCards];
-   }
+    let currentType = filterSelect ? filterSelect.value : "Tous";
+    let sorted
+   if (currentType && currentType !== "Tous") {
+       sorted = await getSortedCreatures(value, currentType);
+    } else {
+       sorted = await getSortedCreatures(value);
+    }
    
-
-   if (value != "id") {
-     sorted.sort((a, b) => {
-       let rawA = (value == "attack" || value == "defence") ? Number(a.stats[value]) : Number(a[value]);
-       let rawB = (value == "attack" || value == "defence") ? Number(b.stats[value]) : Number(b[value]);
-       let valA = rawA || 0;
-       let valB = rawB || 0;
-       return valB - valA;
-     });
-   }
+   
    cardsRender(sorted);
 });
 
