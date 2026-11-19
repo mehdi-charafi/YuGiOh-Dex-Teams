@@ -25,11 +25,10 @@ async function startup() {
     updateTeamCount();
    
     let savedFilter = sessionStorage.getItem("selectedFilter") || "Tous";
-    sessionStorage.setItem("selectedForm", {})
-    let savedForm = sessionStorage.getItem("selectedForm")
+    let savedForm = JSON.parse(sessionStorage.getItem("selectedForm")) || {}
     let filterEl = document.querySelector("#filter");
 
-    if(savedForm) {
+    if(Object.keys(savedForm).length !== 0) {
       let form = document.querySelector("#creature-form")
       
       for (let i of form.elements) {
@@ -182,12 +181,13 @@ const errorMessages = {
 };
 
 form.addEventListener(`focusout`, (event) => {
-  let savedForm = sessionStorage.getItem(`selectedForm`)
+  let savedForm = JSON.parse(sessionStorage.getItem(`selectedForm`)) || {}
   const input = event.target;
   const fieldName = input.name;
   if (!regexPatterns[fieldName]) return;
   validateField(input, fieldName);
-  savedForm[fieldName] = input
+  savedForm[fieldName] = input.value
+   sessionStorage.setItem("selectedForm", JSON.stringify(savedForm))
 });
 
 function validateField(input, fieldName) {
@@ -233,7 +233,7 @@ form.addEventListener(`submit`, async (event) => {
 
   const formData = new FormData(form);
   const newCard = {
-    id: formData.length++,
+    id: String(Date.now()),
     name: formData.get("name"),
     type: formData.get("type"),
     level: formData.get("level"),
@@ -249,6 +249,7 @@ form.addEventListener(`submit`, async (event) => {
     cardsRender(allCards);
 
     form.reset();
+   sessionStorage.removeItem("selectedForm");
     form.querySelectorAll('input, textarea, select').forEach(input => {
       input.classList.remove('border-green-500', 'border-red-500');
     });
