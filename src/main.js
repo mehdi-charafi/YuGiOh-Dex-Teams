@@ -6,7 +6,9 @@ import {
   createCreature, 
   getTeam, 
   addToTeam, 
-  removeFromTeam 
+  removeFromTeam, 
+  getSortedCreatures,
+  removeFromCards
 } from "./services/api.js";
 import { cardsRender, renderDeck, updateTeamCount, showCardDetails, showLoading, hideLoading, showEmptyState} from "./ui.js";
 
@@ -21,9 +23,22 @@ async function startup() {
     
     renderDeck(currentTeam); 
     updateTeamCount();
-
-    let savedFilter = localStorage.getItem("selectedFilter") || "Tous";
+   
+    let savedFilter = sessionStorage.getItem("selectedFilter") || "Tous";
+    let savedForm = JSON.parse(sessionStorage.getItem("selectedForm")) || {}
     let filterEl = document.querySelector("#filter");
+
+    if(Object.keys(savedForm).length !== 0) {
+      let form = document.querySelector("#creature-form")
+      
+      for (let i of form.elements) {
+        if(i.name && savedForm[i.name] !== undefined) {
+          i.value = savedForm[i.name];
+        } 
+      }
+         
+      
+    }
     
     if (filterEl) {
       filterEl.value = savedFilter;
@@ -54,7 +69,7 @@ let filterValue = [];
 
 filter.addEventListener("change", async (event) => {
   let selectedType = event.target.value;
-  localStorage.setItem("selectedFilter", selectedType);
+  sessionStorage.setItem("selectedFilter", selectedType);
   
   showLoading();
   try {
@@ -111,37 +126,30 @@ search.addEventListener("keydown", async (event) => {
 });
 
 let sort = document.querySelector("#sort");
-sort.addEventListener('change', (event) => {
+sort.addEventListener('change', async (event) => {
    let value = event.target.value;
-   let sorted = [];
-   if(enabledFilter == true) {
-    sorted = [...filterValue];
-   } else {
-    sorted = [...allCards];
-   }
+    let currentType = filterSelect ? filterSelect.value : "Tous";
+    let sorted
+   if (currentType && currentType !== "Tous") {
+       sorted = await getSortedCreatures(value, currentType);
+    } else {
+       sorted = await getSortedCreatures(value);
+    }
    
-
-   if (value != "id") {
-     sorted.sort((a, b) => {
-       let rawA = (value == "attack" || value == "defence") ? Number(a.stats[value]) : Number(a[value]);
-       let rawB = (value == "attack" || value == "defence") ? Number(b.stats[value]) : Number(b[value]);
-       let valA = rawA || 0;
-       let valB = rawB || 0;
-       return valB - valA;
-     });
-   }
+   
    cardsRender(sorted);
 });
 
-cards.addEventListener('click', (event) => {
+cards.addEventListener('click', async (event) => {
     if (event.target.closest('button') && event.target.closest('button').classList.contains('card-btn') || event.target.closest(".fav-icon")) {
       return; 
     }
+    allCards = await getCreatures();
 
     const article = event.target.closest('article');
     if (!article) return;
 
-    const cardId = article.querySelector('span').textContent.trim();
+    const cardId = article.querySelector('span').getAttribute(`card-id`)
     const selectedCard = allCards.find(c => String(c.id) === cardId);
 
     if (selectedCard) {
@@ -173,10 +181,13 @@ const errorMessages = {
 };
 
 form.addEventListener(`focusout`, (event) => {
+  let savedForm = JSON.parse(sessionStorage.getItem(`selectedForm`)) || {}
   const input = event.target;
   const fieldName = input.name;
   if (!regexPatterns[fieldName]) return;
   validateField(input, fieldName);
+  savedForm[fieldName] = input.value
+   sessionStorage.setItem("selectedForm", JSON.stringify(savedForm))
 });
 
 function validateField(input, fieldName) {
@@ -222,7 +233,7 @@ form.addEventListener(`submit`, async (event) => {
 
   const formData = new FormData(form);
   const newCard = {
-    id: formData.get("id"),
+    id: String(Date.now()),
     name: formData.get("name"),
     type: formData.get("type"),
     level: formData.get("level"),
@@ -238,6 +249,7 @@ form.addEventListener(`submit`, async (event) => {
     cardsRender(allCards);
 
     form.reset();
+   sessionStorage.removeItem("selectedForm");
     form.querySelectorAll('input, textarea, select').forEach(input => {
       input.classList.remove('border-green-500', 'border-red-500');
     });
@@ -302,5 +314,11 @@ if (mycardsSection) {
   });
 }
 
-
+// delete cards from server
+let delBtn = document.querySelectorAll(".destroycard")
+delBtn.forEach(c => {c.addEventListener("click", (e)=> {
+  let card = e.target.closest(".card")
+  let cardId = card.querySelector("span").getAttribute("card-id")
+  removeFromCards(cardId)
+})})
 
