@@ -8,12 +8,14 @@ import {
   addToTeam, 
   removeFromTeam, 
   getSortedCreatures,
-  removeFromCards
+  removeFromCards,
+  updateCreature
 } from "./services/api.js";
-import { cardsRender, renderDeck, updateTeamCount, showCardDetails, showLoading, hideLoading, showEmptyState} from "./ui.js";
+import { cardsRender, renderDeck, updateTeamCount, showCardDetails, showLoading, hideLoading, showEmptyState, showModifyButton, showAddButton} from "./ui.js";
 
 let allCards = [];
 let currentTeam = [];
+let editingCardId = null;
 
 async function startup() {
   showLoading();
@@ -141,9 +143,62 @@ sort.addEventListener('change', async (event) => {
 });
 
 cards.addEventListener('click', async (event) => {
-    if (event.target.closest('button') && event.target.closest('button').classList.contains('card-btn') || event.target.closest(".fav-icon")) {
-      return; 
+    if (event.target.closest('button') && event.target.closest('button').classList.contains('card-btn')) 
+       {
+      const button = event.target.closest("button");
+      const article = button.closest('article');
+      if (!article) return;
+
+      const cardId = article.querySelector('span').getAttribute(`card-id`)
+      const selectedCard = allCards.find(c => String(c.id) == String(cardId));
+      let currentTeam = await getTeam()
+      console.log(cardId)
+      console.log(currentTeam)
+      if(currentTeam.some(c => String(c.id) == String(cardId)))return
+
+      if (selectedCard) {
+        await addToMyCards(selectedCard);
+      }
+    return
     }
+    if (event.target.closest(`.destroycard`)) {
+      // delete cards from server
+  let card = event.target.closest(".card")
+  let cardId = card.querySelector("span").getAttribute("card-id")
+  if(!window.confirm("Are you sure ?"))return
+  removeFromCards(cardId)
+  return
+    }
+    if (event.target.closest(".edit-btn")) {
+  const card = event.target.closest(".card")
+  if (!card) return;
+
+  const cardId = card.querySelector("span").getAttribute("card-id")
+
+
+  editingCardId = cardId;
+
+  const cardToEdit = allCards.find((c) => String(c.id) === String(cardId));
+  if (cardToEdit && form) {
+  form.elements.name.value = cardToEdit.name 
+  form.elements.type.value = cardToEdit.type
+  form.elements.level.value = cardToEdit.level 
+  form.elements.attack.value = cardToEdit.stats?.attack 
+  form.elements.defence.value = cardToEdit.stats?.defence
+  form.elements.image.value = cardToEdit.image 
+  form.elements.description.value = cardToEdit.description 
+  }
+  
+  showModifyButton()
+
+  const formSection = form.closest("section") 
+  if (formSection) {
+    formSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  return;
+}
+    
     allCards = await getCreatures();
 
     const article = event.target.closest('article');
@@ -167,7 +222,7 @@ const regexPatterns = {
     attack: /^([0-9]|[1-9][0-9]{1,2}|[1-4][0-9]{3}|5000)$/,               
     defence: /^([0-9]|[1-9][0-9]{1,2}|[1-4][0-9]{3}|5000)$/,
     image: /^https?:\/\/.+\.(png|jpg|jpeg|webp|gif)$/i,         
-    description: /^[\s\S]{10,200}$/  
+    description: /^[\s\S]{10,500}$/  
 };
 
 const errorMessages = {
@@ -242,6 +297,39 @@ form.addEventListener(`submit`, async (event) => {
     description: formData.get("description")
   };
 
+  if (editingCardId) {
+    const updatedCard = {
+      id: editingCardId,
+      name: newCard.name,
+      type: newCard.type,
+      level: newCard.level,
+      stats: newCard.stats,
+      image: newCard.image,
+      description: newCard.description
+    };
+
+    try {
+      await updateCreature(editingCardId, updatedCard);
+
+      allCards = await getCreatures();
+      cardsRender(allCards);
+
+      editingCardId = null;
+      form.reset();
+      sessionStorage.removeItem("selectedForm");
+      form.querySelectorAll('input, textarea, select').forEach(input => {
+        input.classList.remove('border-green-500', 'border-red-500');
+      });
+
+      let Ccounts = document.querySelector("#cards-count");
+      if (Ccounts) Ccounts.textContent = allCards.length;
+    } catch (error) {
+      console.error("Failed to update card:", error);
+    }
+    showAddButton()
+    return;
+  }
+
   try {
     await createCreature(newCard);
     
@@ -261,23 +349,7 @@ form.addEventListener(`submit`, async (event) => {
   }
 });
 
-cards.addEventListener('click', async (event) => {
-  console.log("listener works")
-    if (event.target.closest('button') && event.target.closest('button').classList.contains('card-btn')) {
-      const button = event.target.closest("button");
-      const article = button.closest('article');
-      if (!article) return;
 
-      const cardId = article.querySelector('span').getAttribute(`card-id`)
-      const selectedCard = allCards.find(c => String(c.id) == String(cardId));
-      let currentTeam = await getTeam()
-      if(currentTeam.includes(c => String(c.id) == String(cardId)))return
-
-      if (selectedCard) {
-        await addToMyCards(selectedCard);
-      }
-    } 
-});
 
 async function addToMyCards(cardData) {
     let currentTeam = await getTeam();
@@ -314,11 +386,5 @@ if (mycardsSection) {
   });
 }
 
-// delete cards from server
-let delBtn = document.querySelectorAll(".destroycard")
-delBtn.forEach(c => {c.addEventListener("click", (e)=> {
-  let card = e.target.closest(".card")
-  let cardId = card.querySelector("span").getAttribute("card-id")
-  removeFromCards(cardId)
-})})
+
 

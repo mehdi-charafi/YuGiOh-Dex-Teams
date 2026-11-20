@@ -13,9 +13,11 @@ export function cardsRender(list) {
                     <div class="absolute top-2 left-2 z-10 inline-flex items-center gap-1.5 bg-black/70 px-2 py-1 rounded border border-yellow-500/35 backdrop-blur-sm">
                         <span class="card-id text-yellow-400 font-mono text-xs font-bold" card-id="${c.id}">#${c.id}</span>
                     </div>
-                    <div class="absolute top-2 right-0 z-10 inline-flex items-center gap-1.5 px-2 py-1 rounded backdrop-blur-sm">
-                <button type="button" class="destroycard w-7 h-7 flex items-center justify-center text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors cursor-pointer">✕</button>
-                    </div>
+                    <div class="absolute top-2 right-0 z-10 inline-flex flex-row flex-nowrap items-center gap-1.5 px-2 py-1 rounded backdrop-blur-sm">
+                      <button type="button" class="destroycard shrink-0 w-7 h-7 flex items-center justify-center text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors cursor-pointer">✕</button>
+
+  <button type="button" aria-label="Modifier la carte" class="edit-btn shrink-0 w-7 h-7 flex items-center justify-center text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors cursor-pointer">✎</button>
+</div>
                     <img src="${cardImage}" alt="${c.name}" class="w-full h-auto object-contain rounded-lg">
                 </div>
                 <button type="button" class="card-btn w-full py-2.5 bg-gradient-to-r from-yellow-600 to-amber-500 hover:from-yellow-500 hover:to-amber-400 text-black font-bold rounded-lg shadow-md transition-all cursor-pointer">
@@ -128,4 +130,17 @@ export function showErrorState(errorMessage) {
     
     const cardsList = document.querySelector("#Ccards");
     if (cardsList) cardsList.innerHTML = "";
+}
+const form = document.querySelector("#creature-form");
+const addCardBtn = form?.querySelector(".btn-primary");
+const modifyCardBtn = form?.querySelector(".btn-modify");
+
+export function showModifyButton() {
+  if (addCardBtn) addCardBtn.classList.add("hidden");
+  if (modifyCardBtn) modifyCardBtn.classList.remove("hidden");
+}
+
+export function showAddButton() {
+  if (modifyCardBtn) modifyCardBtn.classList.add("hidden");
+  if (addCardBtn) addCardBtn.classList.remove("hidden");
 }

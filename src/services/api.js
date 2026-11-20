@@ -60,6 +60,10 @@ export async function request(method = 'GET', route = '', body = null) {
      return
     }
 
+    export function updateCreature(id, updatedData) {
+     return request("PATCH", `/creatures/${encodeURIComponent(id)}`, updatedData);
+}
+
     export function getTeam() {
       return request(`GET`, `/equip`)
     }
