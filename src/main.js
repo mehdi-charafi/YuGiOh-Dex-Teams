@@ -154,7 +154,7 @@ cards.addEventListener('click', async (event) => {
       let currentTeam = await getTeam()
       console.log(cardId)
       console.log(currentTeam)
-      if(currentTeam.some(c => String(c.id) == String(cardId)))return
+      if(currentTeam.some(c => String(c.name) == String(selectedCard.name)))return
 
       if (selectedCard) {
         await addToMyCards(selectedCard);

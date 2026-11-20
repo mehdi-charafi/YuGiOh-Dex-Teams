@@ -147,7 +147,7 @@
   ],
   "equip": [
     {
-      "id": "NWFyP53GoSQ",
+      "id": "FpgOVY03kC8",
       "name": "Red-Eyes Dragon Exceed",
       "type": "Fusion",
       "level": "9",
@@ -159,7 +159,7 @@
       "description": "\"Red-Eyes Black Dragon\" + 1 monster that mentions \"Dark Time Wizard\" Must be either Fusion Summoned, or Special Summoned (from your Extra Deck) by Tributing 1 face-up monster on either field during the turn a monster was destroyed by the effect of \"Dark Time Wizard\". You can only Special Summon \"Red-Eyes Black Dragon Exceed\" once per turn this way, no matter which method you use. Unaffected by your opponent's activated Spell or monster effects. If this card is Special Summoned: You can Special Summon 1 Level 8 or lower monster from your hand or GY."
     },
     {
-      "id": "gLKk2OTWgYc",
+      "id": "r0ouosj4QoI",
       "name": "Blue-Eyes White Dragon",
       "type": "LIGHT",
       "level": "8",
@@ -171,40 +171,16 @@
       "description": "When this card is added from the Deck to your hand, or a monster you control is destroyed by battle: You can reveal this card in your hand; Special Summon it. If this card is Special Summoned from the hand or Deck: You can destroy all monsters your opponent controls, also you can only attack directly with \"Blue-Eyes\" monsters for the rest of this turn. You can only use each of the preceding effects of \"Blue-Eyes White Dragon, the White Phantom Beast\" once per turn. When a card or effect is activated that targets this card on the field (Quick Effect): You can discard 1 card; negate that effect."
     },
     {
-      "id": "LaCbBV0jczU",
-      "name": "Beaver Warrior",
-      "type": "EARTH",
-      "level": "4",
-      "stats": {
-        "attack": 1200,
-        "defence": 1500
-      },
-      "image": "https://images.ygoprodeck.com/images/cards/32452818.jpg",
-      "description": "What this creature lacks in size it makes up for in defense when battling in the prairie."
-    },
-    {
-      "id": "vMbU3ry6YVU",
-      "name": "Blue-Eyes White Dragon",
-      "type": "LIGHT",
-      "level": "8",
-      "stats": {
-        "attack": 3000,
-        "defence": 2500
-      },
-      "image": "https://images.ygoprodeck.com/images/cards/30397786.jpg",
-      "description": "When this card is added from the Deck to your hand, or a monster you control is destroyed by battle: You can reveal this card in your hand; Special Summon it. If this card is Special Summoned from the hand or Deck: You can destroy all monsters your opponent controls, also you can only attack directly with \"Blue-Eyes\" monsters for the rest of this turn. You can only use each of the preceding effects of \"Blue-Eyes White Dragon, the White Phantom Beast\" once per turn. When a card or effect is activated that targets this card on the field (Quick Effect): You can discard 1 card; negate that effect."
-    },
-    {
-      "id": "vUWjBYf4W_A",
-      "name": "Summoned Skull",
-      "type": "DARK",
-      "level": "6",
+      "id": "TGeLkjgEVG8",
+      "name": "Dark Magician",
+      "type": "Effect",
+      "level": "7",
       "stats": {
         "attack": 2500,
-        "defence": 1200
+        "defence": 2100
       },
-      "image": "https://images.ygoprodeck.com/images/cards/70781052.jpg",
-      "description": "A fiend with dark powers for confusing the enemy. Among the Fiend-Type monsters, this monster boasts considerable force."
+      "image": "https://images.ygoprodeck.com/images/cards/88570003.jpg",
+      "description": "This card's name becomes Dark Magician while on the field or in the GY. You can only use 1 of the following effects of Dark Magician, the Pharaoh's Servant per turn, and only once that turn. If this card is in your hand: You can reveal 1 Spell in your hand; Special Summon this card, then you can Set 1 Spell/Trap that mentions Dark Magician from your Deck. (Quick Effect): You can discard 1 Spell; destroy all Spells/Traps your opponent controls."
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
